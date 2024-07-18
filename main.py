@@ -5,8 +5,12 @@ import csv
 from datetime import datetime
 from threading import Lock
 import logging
+import json
 import httpx
 from dotenv import load_dotenv
+import openai
+from functools import lru_cache
+
 
 # Configure logging
 logging.basicConfig(
@@ -16,6 +20,21 @@ logging.basicConfig(
 )
 
 app = FastAPI()
+OPENAI_ENDPOINT = "https://api.openai.com/v1"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+@lru_cache(maxsize=128)
+def get_openai_models():
+    with httpx.Client() as client:
+        response = client.get(
+            OPENAI_ENDPOINT+'/models',
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            },
+        )
+    return json.loads(response.content).get("data", [])
+OPENAI_MODELS = [model['id'] for model in get_openai_models()]
 
 # Lock for thread-safe writing to the log file
 log_lock = Lock()
@@ -28,6 +47,7 @@ def load_config(file_path):
     api_keys = {}
     server_ip = os.getenv("SERVER_IP", "")
     server_port = os.getenv("SERVER_PORT", "")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
     # Extract API keys that start with "username_"
     for key in os.environ:
@@ -116,26 +136,42 @@ async def proxy(request: Request):
     authorization: str = request.headers.get("Authorization", "")
     request_headers = dict(request.headers)
     request_body = await request.body()
-
     if not authorization.startswith("Bearer "):
         log_invalid_api_usage(api_key="no_api_key", endpoint=request.url.path, request_headers=request_headers, request_body=request_body)
         return Response("Invalid API Key format", status_code=400, headers={"Proxy-Status": "invalid_api_key_format"})
 
     api_key = authorization[7:]  # Remove the 'Bearer ' prefix
+
+    if request_body:
+        model_name = json.loads(request_body).get("model", "")
+    else:
+        model_name = ""
     if api_key.replace('"', '') in VALID_API_KEYS.values():
+        if model_name in OPENAI_MODELS:
+            log_api_usage(api_key, request.url.path, request_headers=request_headers, request_body=request_body.decode())
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    OPENAI_ENDPOINT+'/chat/completions',
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {OPENAI_API_KEY}"
+                    },
+                    data=request_body
+                )
+                return response.json() # stream doesn't work
+        else:
+            log_api_usage(api_key, request.url.path, request_headers=request_headers, request_body=request_body.decode())
 
-        log_api_usage(api_key, request.url.path, request_headers=request_headers, request_body=request_body)
-
-        # Forward the request to the actual server
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                method=request.method,
-                url=f"http://{SERVER_IP}:{SERVER_PORT}{request.url.path}",
-                headers=request.headers,
-                content=await request.body()
-            )
-        
-        return Response(content=response.content, status_code=response.status_code, headers=dict(response.headers))
+            # Forward the request to the actual server
+            async with httpx.AsyncClient() as client:
+                response = await client.request(
+                    method=request.method,
+                    url=f"http://{SERVER_IP}:{SERVER_PORT}{request.url.path}",
+                    headers=request.headers,
+                    content=await request.body()
+                )
+            
+            return Response(content=response.content, status_code=response.status_code, headers=dict(response.headers))
     else:
         log_invalid_api_usage(api_key, request.url.path)
         return Response("Invalid API Key", status_code=401, headers={"Proxy-Status": "invalid_api_key"})
