@@ -6,7 +6,6 @@ from datetime import datetime
 from threading import Lock
 import logging
 import httpx
-from openai import OpenAI
 
 # Configure logging
 logging.basicConfig(
