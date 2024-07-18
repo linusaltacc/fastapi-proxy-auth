@@ -6,6 +6,7 @@ from datetime import datetime
 from threading import Lock
 import logging
 import httpx
+from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(
@@ -21,25 +22,18 @@ log_lock = Lock()
 
 # Function to load API keys and server details from the .env file
 def load_config(file_path):
-    api_keys = {}
-    server_ip = ""
-    server_port = ""
+    # Load environment variables from .env file
+    load_dotenv(file_path)
 
-    try:
-        with open(file_path, "r") as file:
-            for line in file:
-                line = line.strip()
-                if line:
-                    key, value = line.split('=')
-                    if key.startswith("username_"):
-                        api_keys[key.split('username_')[1]] = value
-                    elif key == "SERVER_IP":
-                        server_ip = value
-                    elif key == "SERVER_PORT":
-                        server_port = value
-    except Exception as e:
-        logging.error(f"Error reading configuration from file '{file_path}': {e}")
-    
+    api_keys = {}
+    server_ip = os.getenv("SERVER_IP", "")
+    server_port = os.getenv("SERVER_PORT", "")
+
+    # Extract API keys that start with "username_"
+    for key in os.environ:
+        if key.startswith("username_"):
+            api_keys[key.split('username_')[1]] = os.getenv(key)
+
     return api_keys, server_ip, server_port
 
 # Load configuration from .env
