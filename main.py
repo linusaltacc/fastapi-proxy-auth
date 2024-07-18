@@ -82,24 +82,6 @@ def log_invalid_api_usage(api_key, endpoint, request_headers="none", request_bod
         except Exception as e:
             logging.error(f"Error writing to invalid_api_usage.csv: {e}")
 
-# Function to validate the API key
-@app.api_route("/validate", methods=["GET", "POST"])
-async def validate_api_key(request: Request):
-    authorization: str = request.headers.get("Authorization", "")
-    
-    if not authorization.startswith("Bearer "):
-        log_invalid_api_usage(api_key="no_api_key", endpoint="/validate")
-        return Response("Invalid API Key format", status_code=400, headers={"Proxy-Status": "invalid_api_key_format"})
-
-    api_key = authorization[7:]  # Remove the 'Bearer ' prefix
-    
-    if api_key in VALID_API_KEYS.values():
-        log_api_usage(api_key, "/validate")
-        return Response("API Key validation successful", status_code=200, headers={"Proxy-Status": "valid_api_key"})
-    else:
-        log_invalid_api_usage(api_key, "/validate")
-        return Response("Invalid API Key", status_code=401, headers={"Proxy-Status": "invalid_api_key"})
-    
 # Function to get the API usage logs
 @app.api_route("/api_usage", methods=["GET"])
 async def get_api_usage(request: Request):
@@ -146,8 +128,7 @@ async def proxy(request: Request):
         return Response("Invalid API Key format", status_code=400, headers={"Proxy-Status": "invalid_api_key_format"})
 
     api_key = authorization[7:]  # Remove the 'Bearer ' prefix
-    
-    if api_key in VALID_API_KEYS.values():
+    if api_key.replace('"', '') in VALID_API_KEYS.values():
 
         log_api_usage(api_key, request.url.path, request_headers=request_headers, request_body=request_body)
 
