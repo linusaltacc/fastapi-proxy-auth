@@ -62,14 +62,6 @@ The application will start on port 8081.
 
 ## Usage
 
-### Validating API Keys
-
-To validate an API key, send a request to the `/validate` endpoint with the `Authorization` header:
-
-```bash
-curl -i http://localhost:8081/validate -H "Authorization: Bearer your_api_key"
-```
-
 ### Proxying Requests
 
 Send requests to any endpoint, and the application will validate the API key and proxy valid requests:
@@ -89,9 +81,9 @@ This is the main file containing the FastAPI application. It includes the follow
 - **API Key Validation**: The `/validate` endpoint validates the API keys.
 - **Traffic Analysis Endpoint**: Access API traffic and usage analytics by navigating to `/api_usage`. 
 - **Proxying Requests**: The root endpoint (`/{path:path}`) proxies valid requests to the configured server.
-- **OpenAI Compatabale for Ollama**: Example usage of the OpenAI API.
+- **OpenAI Compatable for Ollama**: Example usage of the OpenAI API.
 
-## OpenAI Compbatable Example for ollama API
+## OpenAI Compatable Example for ollama API
 
 This repository also includes an example of using the OpenAI API. Ensure you have the `openai` package installed and set up correctly.
 
@@ -109,9 +101,7 @@ response = client.chat.completions.create(
     model="model_name",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Who won the world series in 2020?"},
-        {"role": "assistant", "content": "The LA Dodgers won in 2020."},
-        {"role": "user", "content": "Where was it played?"}
+        {"role": "user", "content": "Who won the IPL in 2010?"}
     ]
 )
 print(response.choices[0].message.content)
