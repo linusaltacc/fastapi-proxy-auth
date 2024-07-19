@@ -62,7 +62,7 @@ def get_ollama_models():
     if SERVER_IP and SERVER_PORT:
         with httpx.Client() as client:
             response = client.get(
-                url=f"http://{SERVER_IP}:{SERVER_PORT}/api/ps",
+                url=f"http://{SERVER_IP}:{SERVER_PORT}/api/tags",
             )
         return json.loads(response.content).get("models", [])
     else:
