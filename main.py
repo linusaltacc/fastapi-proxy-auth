@@ -19,7 +19,7 @@ logging.basicConfig(
     filename='service.log'
 )
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 # Lock for thread-safe writing to the log file
 log_lock = Lock()
