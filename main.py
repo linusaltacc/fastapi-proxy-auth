@@ -32,7 +32,7 @@ def load_config(file_path):
     api_keys = {}
     server_ip = os.getenv("SERVER_IP", False)
     server_port = os.getenv("SERVER_PORT", False)
-    openai_endpoint = "https://api.openai.com"
+    openai_endpoint = os.getenv("OPENAI_CUSTOM_ENDPOINT", "https://api.openai.com")
     openai_api_key = os.getenv("OPENAI_API_KEY", False)
 
     # Extract API keys that start with "username_"
